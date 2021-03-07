@@ -1,0 +1,24 @@
+# .gitignore
+
+# vim swap files.
+*.swp
+
+# python compiled files.
+*.pyc
+
+# Macintosh Desktop Services Store files.
+.DS_Store
+
+# backup/temps
+*~
+
+# object files/build directories
+*.o
+build
+tags
+TAGS
+
+# coverage files.
+*.gcno
+*.gcda
+*.gcov
