@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from exception import Thrower, ThrowTree
 from function import FunctionCall, FunctionDecl, FunctionNode
-from util import translation_units, write_tree
+from util import IndexContext, translation_units, write_tree
 
 
 class ProgramIndexes:
@@ -15,40 +15,43 @@ class ProgramIndexes:
 
         # List of places that throw exceptions
         self.throwers = []  # List[Thrower]
+        self.context = IndexContext()
 
         for tu in translation_units(build_dir):
+            assert self.context.is_empty()
             if output_parse_tree:
                 write_tree(tu.cursor)
             self._populate_function_nodes(tu.cursor)
 
-    def _populate_function_nodes(self,
-                                 cursor: ci.Cursor,
-                                 in_function: str = '',
-                                 in_try_block: bool = False):
-        if cursor.kind.name == 'CXX_TRY_STMT':
-            pass
+    def _populate_function_nodes(self, cursor: ci.Cursor):
         if cursor.kind.name == 'FUNCTION_DECL':
             usr = cursor.get_usr()
             assert self.function_nodes[usr].decl is None
             self.function_nodes[usr].decl = FunctionDecl(usr, cursor.location)
-            in_function = usr
+            self.context.push_function(usr)
         if cursor.kind.name == 'CALL_EXPR':
             usr = cursor.referenced.get_usr()
-            self.function_nodes[in_function].calls.append(
-                FunctionCall(usr, cursor.location, in_try_block))
+            # TODO function calls can happen outside of functions
+            # For example, in a global init, or in a lamba in a global init.
+            self.function_nodes[self.context.top_function()].calls.append(
+                FunctionCall(usr, cursor.location, self.context))
             self.function_nodes[usr].callers.append(
-                FunctionCall(in_function, cursor.location, in_try_block))
+                FunctionCall(self.context.top_function(), cursor.location,
+                             self.context))
         if cursor.kind.name == 'CXX_TRY_STMT':
-            in_try_block = True
+            self.context.push_try_block(cursor.location)
         if cursor.kind.name == 'CXX_THROW_EXPR':
             self.throwers.append(
-                Thrower(in_function, cursor.location, in_try_block))
-        old_in_try_block = in_try_block
-        old_in_function = in_function
+                Thrower(self.context.top_function(), cursor.location,
+                        self.context))
+
         for child in cursor.get_children():
-            self._populate_function_nodes(child, in_function, in_try_block)
-        in_function = old_in_function
-        in_try_block = old_in_try_block
+            self._populate_function_nodes(child)
+
+        if cursor.kind.name == 'FUNCTION_DECL':
+            self.context.pop_funtion()
+        if cursor.kind.name == 'CXX_TRY_STMT':
+            self.context.pop_try_block()
 
     def call_graph_report(self):
         for usr, fn in self.function_nodes.items():

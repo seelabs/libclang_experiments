@@ -3,7 +3,7 @@ import clang.cindex as ci
 from typing import Dict, List, Set
 
 from function import FunctionCall, FunctionNode
-from util import Location
+from util import IndexContext, Location
 
 
 class Thrower:
@@ -11,10 +11,10 @@ class Thrower:
     Represents places that throw exceptions
     '''
     def __init__(self, fun_usr: str, loc: ci.SourceLocation,
-                 in_try_block: bool):
+                 context: IndexContext):
         self.fun_usr = fun_usr  # Containing function USR
         self.loc = Location(loc)
-        self.in_try_block = in_try_block
+        self.in_try_block = context.in_try_block()
 
 
 class ThrowTreeNode:

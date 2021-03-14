@@ -1,6 +1,6 @@
 import clang.cindex as ci
 
-from util import Location
+from util import IndexContext, Location
 
 
 class FunctionDecl:
@@ -10,10 +10,11 @@ class FunctionDecl:
 
 
 class FunctionCall:
-    def __init__(self, usr: str, loc: ci.SourceLocation, in_try_block: bool):
+    def __init__(self, usr: str, loc: ci.SourceLocation,
+                 context: IndexContext):
         self.usr = usr
         self.loc = Location(loc)
-        self.in_try_block = in_try_block
+        self.in_try_block = context.in_try_block()
 
 
 class FunctionNode:

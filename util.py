@@ -22,15 +22,49 @@ class Location:
         return f'{base}:{self.line}:{self.column}'
 
 
+class IndexContext:
+    '''
+    AST tree context.
+    function_statck should have at most one element. It is the current function declaration, if any.
+    try_block_stack is the list of nested try blocks.
+    '''
+    def __init__(self):
+        self.function_stack = []
+        self.try_block_stack = []
+
+    def push_function(self, usr: str):
+        self.function_stack.append(usr)
+
+    def pop_funtion(self):
+        self.function_stack.pop()
+
+    def top_function(self) -> str:
+        return self.function_stack[-1]
+
+    def push_try_block(self, loc: ci.SourceLocation):
+        # N.B. the lifetime of loc depends on the ci.Cursor lifetime
+        self.try_block_stack.append(loc)
+
+    def pop_try_block(self):
+        self.try_block_stack.pop()
+
+    def is_empty(self) -> bool:
+        return not (self.function_stack or self.try_block_stack)
+
+    def in_try_block(self) -> bool:
+        return not not self.try_block_stack
+
+
 def _filter_compile_args(args: List[str]):
     '''
     Filter out compiler args that will confuse the parser
     '''
     # Here is a sample of typical args:
-    # ['/home/swd/apps/gcc-latest/bin/g++', '--driver-mode=g++', '-DFMT_LOCALE', '-DGFLAGS_IS_A_DLL=0',
-    #  '-DJSON_USE_IMPLICIT_CONVERSIONS=1', '-isystem', '/home/swd/projs/common/boost-latest',
-    # '-pthread', '-std=gnu++17',
-    # '-o', 'CMakeFiles/main.dir/src/main.cpp.o', '-c', '/home/swd/projs/libclang_experiments/sample_proj/src/main.cpp']
+    # ['/home/swd/apps/gcc-latest/bin/g++', '--driver-mode=g++', '-DFMT_LOCALE',
+    # '-DGFLAGS_IS_A_DLL=0', '-DJSON_USE_IMPLICIT_CONVERSIONS=1', '-isystem',
+    # '/home/swd/projs/common/boost-latest', # '-pthread', '-std=gnu++17',
+    # '-o', 'CMakeFiles/main.dir/src/main.cpp.o',
+    # '-c', '/home/swd/projs/libclang_experiments/sample_proj/src/main.cpp']
     # remove the `-c`- and subsequent arg
 
     r = []
