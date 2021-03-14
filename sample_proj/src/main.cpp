@@ -37,6 +37,14 @@ main(int argc, char** argv)
     {
         foo(argc == 1);
     }
+    catch (AStruct const&)
+    {
+        return 2;
+    }
+    catch (int xxx)
+    {
+        return 3;
+    }
     catch (...)
     {
         return 1;

@@ -86,7 +86,9 @@ def translation_units(build_dir: str):
 
 
 def write_tree(cursor: ci.Cursor, indent: int = 0):
-    print(f'{indent*" "}{cursor.kind}:{Location(cursor.location)}')
+    print(
+        f'{indent*" "}{cursor.kind}:{cursor.type.spelling}:{Location(cursor.location)}'
+    )
     for child in cursor.get_children():
         write_tree(child, indent + 1)
 
