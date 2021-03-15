@@ -1,0 +1,4 @@
+* Copy source location and names to tus don't need to be kept around for memory management purposes
+* Given a throw, who list of where it will bet caught
+* Clicking on the catch, give the call-tree that gets you there
+* Determine when a throw statement matches a catch
