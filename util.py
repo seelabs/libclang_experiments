@@ -26,11 +26,13 @@ class IndexContext:
     '''
     AST tree context.
     function_statck should have at most one element. It is the current function declaration, if any.
-    try_block_stack is the list of nested try blocks.
+    try_block_stack is the list of nested try blocks. This will be of type exception.TryCatch
+    cursor_stack is a list of cursor's parents, up to the tu.
     '''
     def __init__(self):
         self.function_stack = []
         self.try_block_stack = []
+        self.cursor_stack = []
 
     def push_function(self, usr: str):
         self.function_stack.append(usr)
@@ -41,15 +43,30 @@ class IndexContext:
     def top_function(self) -> str:
         return self.function_stack[-1]
 
-    def push_try_block(self, loc: ci.SourceLocation):
-        # N.B. the lifetime of loc depends on the ci.Cursor lifetime
-        self.try_block_stack.append(loc)
+    def push_try_block(self, try_catch):  # try_catch: exception.TryCatch
+        self.try_block_stack.append(try_catch)
 
     def pop_try_block(self):
         self.try_block_stack.pop()
 
+    def top_try_block(self):
+        return self.try_block_stack[-1]
+
+    def push_cursor(self, c: ci.Cursor):
+        self.cursor_stack.append(c)
+
+    def pop_cursor(self):
+        self.cursor_stack.pop()
+
+    def top_cursor(self) -> ci.Cursor:
+        return self.cursor_stack[-1]
+
+    def parent_cursor(self) -> ci.Cursor:
+        return self.cursor_stack[-2]
+
     def is_empty(self) -> bool:
-        return not (self.function_stack or self.try_block_stack)
+        return not (self.function_stack or self.try_block_stack
+                    or self.cursor_stack)
 
     def in_try_block(self) -> bool:
         return not not self.try_block_stack

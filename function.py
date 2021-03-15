@@ -10,11 +10,10 @@ class FunctionDecl:
 
 
 class FunctionCall:
-    def __init__(self, usr: str, loc: ci.SourceLocation,
-                 context: IndexContext):
+    def __init__(self, usr: str, context: IndexContext):
         self.usr = usr
-        self.loc = Location(loc)
-        self.in_try_block = context.in_try_block()
+        self.loc = Location(context.top_cursor().location)
+        self.try_block_stack = context.try_block_stack.copy()
 
 
 class FunctionNode:

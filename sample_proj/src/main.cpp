@@ -29,6 +29,8 @@ bar(bool b)
     foo(b);
 }
 
+// int GLOBAL = [] { foo(true); };
+
 int
 main(int argc, char** argv)
 {
@@ -39,7 +41,8 @@ main(int argc, char** argv)
     }
     catch (AStruct const&)
     {
-        return 2;
+        int decl_in_catch = 2;
+        return decl_in_catch;
     }
     catch (int xxx)
     {

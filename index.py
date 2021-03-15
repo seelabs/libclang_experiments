@@ -2,7 +2,7 @@ import clang.cindex as ci
 
 from collections import defaultdict
 
-from exception import Thrower, ThrowTree
+from exception import Catcher, Thrower, ThrowTree, TryCatch
 from function import FunctionCall, FunctionDecl, FunctionNode
 from util import IndexContext, translation_units, write_tree
 
@@ -24,6 +24,7 @@ class ProgramIndexes:
             self._populate_function_nodes(tu.cursor)
 
     def _populate_function_nodes(self, cursor: ci.Cursor):
+        self.context.push_cursor(cursor)
         if cursor.kind.name == 'FUNCTION_DECL':
             usr = cursor.get_usr()
             assert self.function_nodes[usr].decl is None
@@ -34,16 +35,18 @@ class ProgramIndexes:
             # TODO function calls can happen outside of functions
             # For example, in a global init, or in a lamba in a global init.
             self.function_nodes[self.context.top_function()].calls.append(
-                FunctionCall(usr, cursor.location, self.context))
+                FunctionCall(usr, self.context))
             self.function_nodes[usr].callers.append(
-                FunctionCall(self.context.top_function(), cursor.location,
-                             self.context))
+                FunctionCall(self.context.top_function(), self.context))
+        if cursor.kind.name == 'VAR_DECL' and self.context.parent_cursor(
+        ).kind.name == 'CXX_CATCH_STMT':
+            self.context.top_try_block().set_top_catcher_exception_type(cursor)
         if cursor.kind.name == 'CXX_TRY_STMT':
-            self.context.push_try_block(cursor.location)
+            self.context.push_try_block(TryCatch(self.context))
+        if cursor.kind.name == 'CXX_CATCH_STMT':
+            self.context.top_try_block().add_catcher(Catcher(self.context))
         if cursor.kind.name == 'CXX_THROW_EXPR':
-            self.throwers.append(
-                Thrower(self.context.top_function(), cursor.location,
-                        self.context))
+            self.throwers.append(Thrower(self.context))
 
         for child in cursor.get_children():
             self._populate_function_nodes(child)
@@ -52,14 +55,15 @@ class ProgramIndexes:
             self.context.pop_funtion()
         if cursor.kind.name == 'CXX_TRY_STMT':
             self.context.pop_try_block()
+        self.context.pop_cursor()
 
     def call_graph_report(self):
         for usr, fn in self.function_nodes.items():
             print(f'Node: {usr}:')
             for c in fn.callers:
-                print(f'caller:  {c.usr} : {c.in_try_block}')
+                print(f'caller:  {c.usr} : {c.try_block_stack}')
             for c in fn.calls:
-                print(f'calls:  {c.usr} : {c.in_try_block}')
+                print(f'calls:  {c.usr} : {c.try_block_stack}')
 
     def throw_tree_report(self):
         for t in self.throwers:
