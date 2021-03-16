@@ -14,6 +14,12 @@ class Thrower:
         self.fun_usr = context.top_function()  # Containing function USR
         self.loc = Location(context.top_cursor().location)
         self.try_block_stack = context.try_block_stack.copy()
+        self.exception_type = None
+
+    def set_exception_type(self, context: IndexContext):
+        c = context.top_cursor()
+        if self.exception_type is None and c.type:
+            self.exception_type = c.type.spelling
 
 
 class Catcher:
@@ -29,6 +35,14 @@ class Catcher:
 
     def __repr__(self):
         return f'Catcher: {self.loc} {self.exception_type}'
+
+    def matches(self, thrower: Thrower) -> bool:
+        if exception_type is None:
+            return True
+        if thrower.exception_type is None:
+            pass  # TODO Get the exeception type for a re-throw
+        # TODO: See if the throw type matches the catch type
+        return True
 
 
 class TryCatch:

@@ -21,6 +21,12 @@ class Location:
         base = os.path.basename(self.file)
         return f'{base}:{self.line}:{self.column}'
 
+    def as_org_mode_link(self):
+        if not self.file:
+            return ""
+        base = os.path.basename(self.file)
+        return f'[[file:{self.file}::{self.line}][{base}::{self.line}::{self.column}]]'
+
 
 class IndexContext:
     '''
@@ -28,10 +34,12 @@ class IndexContext:
     function_statck should have at most one element. It is the current function declaration, if any.
     try_block_stack is the list of nested try blocks. This will be of type exception.TryCatch
     cursor_stack is a list of cursor's parents, up to the tu.
+    throw_stack should have at most one element. It is the current thrower, if any
     '''
     def __init__(self):
         self.function_stack = []
         self.try_block_stack = []
+        self.thrower_stack = []
         self.cursor_stack = []
 
     def push_function(self, usr: str):
@@ -51,6 +59,18 @@ class IndexContext:
 
     def top_try_block(self):
         return self.try_block_stack[-1]
+
+    def push_thrower(self, try_catch):  # try_catch: exception.Thrower
+        self.thrower_stack.append(try_catch)
+
+    def pop_thrower(self):
+        self.thrower_stack.pop()
+
+    def top_thrower(self):
+        return self.thrower_stack[-1]
+
+    def has_thrower(self):
+        return not not self.thrower_stack
 
     def push_cursor(self, c: ci.Cursor):
         self.cursor_stack.append(c)
@@ -114,7 +134,7 @@ def translation_units(build_dir: str):
 
 def write_tree(cursor: ci.Cursor, indent: int = 0):
     print(
-        f'{indent*" "}{cursor.kind}:{cursor.type.spelling}:{Location(cursor.location)}'
+        f'{indent*"*"} {cursor.kind}:{cursor.type.spelling}:{Location(cursor.location).as_org_mode_link()}'
     )
     for child in cursor.get_children():
         write_tree(child, indent + 1)

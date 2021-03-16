@@ -25,6 +25,10 @@ class ProgramIndexes:
 
     def _populate_function_nodes(self, cursor: ci.Cursor):
         self.context.push_cursor(cursor)
+
+        if self.context.has_thrower():
+            self.context.top_thrower().set_exception_type(self.context)
+
         if cursor.kind.name == 'FUNCTION_DECL':
             usr = cursor.get_usr()
             assert self.function_nodes[usr].decl is None
@@ -46,7 +50,9 @@ class ProgramIndexes:
         if cursor.kind.name == 'CXX_CATCH_STMT':
             self.context.top_try_block().add_catcher(Catcher(self.context))
         if cursor.kind.name == 'CXX_THROW_EXPR':
-            self.throwers.append(Thrower(self.context))
+            thrower = Thrower(self.context)
+            self.context.push_thrower(thrower)
+            self.throwers.append(thrower)
 
         for child in cursor.get_children():
             self._populate_function_nodes(child)
@@ -55,6 +61,8 @@ class ProgramIndexes:
             self.context.pop_funtion()
         if cursor.kind.name == 'CXX_TRY_STMT':
             self.context.pop_try_block()
+        if cursor.kind.name == 'CXX_THROW_EXPR':
+            self.context.pop_thrower()
         self.context.pop_cursor()
 
     def call_graph_report(self):
@@ -68,6 +76,6 @@ class ProgramIndexes:
     def throw_tree_report(self):
         for t in self.throwers:
             tree = ThrowTree(t, self.function_nodes)
-            print(f'throw: {tree.root.loc}')
+            print(f'throw: {tree.root.loc} : {t.exception_type}')
             for l in tree.leaves:
                 print(f'catch: {l}')
