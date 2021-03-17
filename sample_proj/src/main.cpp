@@ -37,20 +37,28 @@ main(int argc, char** argv)
     AStruct as{argc};
     try
     {
-        foo(argc == 1);
+        try
+        {
+            foo(argc == 1);
+        }
+        catch (AStruct const&)
+        {
+            int decl_in_catch = 2;
+            return decl_in_catch;
+        }
+        catch (int xxx)
+        {
+            // test rethrow
+            throw;
+        }
+        catch (...)
+        {
+            return 1;
+        }
     }
-    catch (AStruct const&)
+    catch (int y)
     {
-        int decl_in_catch = 2;
-        return decl_in_catch;
-    }
-    catch (int xxx)
-    {
-        return 3;
-    }
-    catch (...)
-    {
-        return 1;
+        return 2;
     }
     foo(argc == 1);
     return 0;

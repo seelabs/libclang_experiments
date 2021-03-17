@@ -36,13 +36,22 @@ class Catcher:
     def __repr__(self):
         return f'Catcher: {self.loc} {self.exception_type}'
 
-    def matches(self, thrower: Thrower) -> bool:
+    def _matches_thrower(self, thrower: Thrower) -> bool:
         if exception_type is None:
             return True
         if thrower.exception_type is None:
             pass  # TODO Get the exeception type for a re-throw
         # TODO: See if the throw type matches the catch type
         return True
+
+    # throwers is a stack to it can handle re-throws
+    # throwers with a exception_type of None are re-throws
+    def matches(self, throwers: List[Thrower]) -> bool:
+        for t in reversed(throwers):
+            if t.exception_type is not None:
+                return self._matches_thrower(t)
+        assert (False)
+        # at least one thrower can't be a rethrow
 
 
 class TryCatch:
@@ -81,7 +90,7 @@ class ThrowTree:
         self.function_nodes = function_nodes
 
         if root.try_block_stack:
-            self.leaves.append[root.try_block_stack]
+            self.leaves.append(root.try_block_stack)
             return
         callers = function_nodes[root.fun_usr].callers
         self._set_children(self.root, callers, set())
